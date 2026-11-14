@@ -191,7 +191,35 @@ if [ ! -s "$stage/boot/initramfs" ]; then
 fi
 sudo umount "$work/modloop"
 
-gcc -O2 -o "$stage/bin/linkspan-surface" bridge/linkspan-surface.c
+host_arch=$(uname -m)
+surface_cc=${CC:-}
+if [ -z "$surface_cc" ]; then
+  if [ "$arch" = "$host_arch" ]; then
+    surface_cc=gcc
+  elif [ "$arch" = aarch64 ]; then
+    surface_cc=aarch64-linux-gnu-gcc
+  elif [ "$arch" = x86_64 ]; then
+    surface_cc=x86_64-linux-gnu-gcc
+  else
+    echo "No C compiler is known for $arch." >&2
+    exit 1
+  fi
+fi
+if ! command -v "$surface_cc" >/dev/null 2>&1; then
+  echo "Refusing to pack bin/linkspan-surface for $arch. Install $surface_cc. The host gcc would be the wrong architecture." >&2
+  exit 1
+fi
+"$surface_cc" -O2 -static -o "$stage/bin/linkspan-surface" bridge/linkspan-surface.c
+case "$arch" in
+  x86_64) file_token=x86-64 ;;
+  aarch64) file_token=aarch64 ;;
+  *) file_token=$arch ;;
+esac
+if ! file "$stage/bin/linkspan-surface" | grep -q "$file_token"; then
+  echo "bin/linkspan-surface is not a $arch binary." >&2
+  file "$stage/bin/linkspan-surface" >&2 || true
+  exit 1
+fi
 cp bridge/linkspan-runtime.sh "$stage/bin/linkspan-runtime"
 chmod 755 "$stage/bin/linkspan-runtime"
 printf '%s\n' "$arch" > "$stage/ARCH"
