@@ -2,13 +2,16 @@
   "id": "linux",
   "edition": "slim",
   "version": "0.1.0",
-  "published": false,
+  "published": true,
   "repo": "https://github.com/yezicheng2011/olympium-linux",
   "tag": "v0.1.0",
-  "summary": "A small Linux root filesystem for a virtual machine. Linux hosts do not need it.",
+  "summary": "Alpine Linux 3.24.4 minirootfs and the matching virt kernel, booted under QEMU. Not used when the host is already Linux. Lima and WSL import were not tested.",
   "assets": {
     "x86_64": "linux-slim-x86_64.tar.gz",
     "aarch64": "linux-slim-aarch64.tar.gz"
   },
-  "sha256": {}
+  "sha256": {
+    "x86_64": "ee99f134d87dfcaa898566e79f21a521b97837ab864fceb80ba221396e3e0412",
+    "aarch64": "b34d347e4454c129fc8ac2190f036827e988bdbe4f1b2a603689f34bb3cd03c0"
+  }
 }
