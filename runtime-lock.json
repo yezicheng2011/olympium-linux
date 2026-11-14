@@ -1,0 +1,14 @@
+{
+  "id": "linux",
+  "edition": "slim",
+  "version": "0.1.0",
+  "published": false,
+  "repo": "https://github.com/yezicheng2011/olympium-linux",
+  "tag": "v0.1.0",
+  "summary": "A small Linux root filesystem for a virtual machine. Linux hosts do not need it.",
+  "assets": {
+    "x86_64": "linux-slim-x86_64.tar.gz",
+    "aarch64": "linux-slim-aarch64.tar.gz"
+  },
+  "sha256": {}
+}
