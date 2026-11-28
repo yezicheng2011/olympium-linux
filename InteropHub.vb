@@ -99,7 +99,9 @@ Namespace OlympiumLinux
             If text.Length > 65536 Then text = text.Substring(0, 65536)
             File.WriteAllText(clipFile, text)
 
-            Dim targets As New List(Of String) From {"host-linux", "wine-S-drive"}
+            Dim targets As New List(Of String)
+            If WriteHostClipboard(text) Then targets.Add("host-linux")
+            targets.Add("wine-S-drive")
             Dim adb = RuntimeEngine.FindExecutable("adb")
             If adb <> "" AndAlso text <> "" Then
                 Dim devs = CaptureOutput(adb, "devices")
@@ -144,17 +146,63 @@ Namespace OlympiumLinux
             Return If(rc = 0, "Installed open-source microG GmsCore (Apache-2.0) to Android target.", "Staged microG GmsCore locally; no active ADB device.")
         End Function
 
+        Private Function WriteHostClipboard(text As String) As Boolean
+            Dim wlCopy = RuntimeEngine.FindExecutable("wl-copy")
+            If wlCopy <> "" AndAlso FeedClipboardOwner(wlCopy, "", text) Then Return True
+            Dim xclip = RuntimeEngine.FindExecutable("xclip")
+            If xclip <> "" AndAlso FeedClipboardOwner(xclip, "-selection clipboard", text) Then Return True
+            Return False
+        End Function
+
+        ' wl-copy and xclip stay alive to own the selection. A process that is still
+        ' running after stdin is closed has accepted the text; do not kill it.
+        Private Function FeedClipboardOwner(exe As String, args As String, text As String) As Boolean
+            Try
+                Dim psi As New ProcessStartInfo(exe, args) With {
+                    .UseShellExecute = False,
+                    .RedirectStandardInput = True,
+                    .RedirectStandardOutput = True,
+                    .RedirectStandardError = True
+                }
+                Dim p = Process.Start(psi)
+                If p Is Nothing Then Return False
+                p.StandardOutput.ReadToEndAsync()
+                p.StandardError.ReadToEndAsync()
+                p.StandardInput.Write(text)
+                p.StandardInput.Close()
+                If p.WaitForExit(1500) Then Return p.ExitCode = 0
+                Return True
+            Catch
+                Return False
+            End Try
+        End Function
+
         Private Function CaptureOutput(exe As String, args As String) As String
             Try
                 Dim psi As New ProcessStartInfo(exe, args) With {
                     .UseShellExecute = False,
-                    .RedirectStandardOutput = True
+                    .RedirectStandardOutput = True,
+                    .RedirectStandardError = True
                 }
                 Using p = Process.Start(psi)
                     If p Is Nothing Then Return ""
-                    Dim output = p.StandardOutput.ReadToEnd()
-                    p.WaitForExit(4000)
-                    Return output
+                    Dim outTask = p.StandardOutput.ReadToEndAsync()
+                    Dim errTask = p.StandardError.ReadToEndAsync()
+                    If Not p.WaitForExit(4000) Then
+                        Try
+                            p.Kill(entireProcessTree:=True)
+                        Catch
+                        End Try
+                        p.WaitForExit(1000)
+                        outTask.Wait(500)
+                        errTask.Wait(200)
+                        Return ""
+                    End If
+                    If outTask.Wait(1000) Then
+                        errTask.Wait(200)
+                        Return If(outTask.Result, "")
+                    End If
+                    Return ""
                 End Using
             Catch
                 Return ""
