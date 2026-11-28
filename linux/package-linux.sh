@@ -50,7 +50,7 @@ Type=Application
 Name=Olympium
 GenericName=Universal Cross-Platform App Runner
 Comment=Install and run Windows, macOS, Linux (x86/x64/ARM32/ARM64), Android, and OpenHarmony apps natively
-Exec=/usr/bin/olympium-linux %f
+Exec=/usr/bin/olympium-linux open %f
 Icon=olympium
 Terminal=false
 Categories=System;Utility;
@@ -63,7 +63,7 @@ Version: $VERSION
 Section: utils
 Priority: optional
 Architecture: $deb_arch
-Depends: libgtk-3-0, dotnet-runtime-8.0, qemu-user-static | qemu-user
+Depends: libgtk-3-0, qemu-user-static | qemu-user
 Recommends: wine, adb, scrcpy, p7zip-full, rpm2cpio, cpio
 Maintainer: Olympium Project <maintainers@olympium.local>
 Description: Olympium Universal Cross-Platform Desktop App for Linux

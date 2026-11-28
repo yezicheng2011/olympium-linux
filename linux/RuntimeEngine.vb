@@ -232,16 +232,15 @@ Namespace OlympiumLinux
             Return RunProcess(execBin, execArgs, env, False)
         End Function
 
-        Private Function LaunchLinuxBinary(info As InspectionResult, ByRef msg As String, Optional stageDir As String = Nothing) As Integer
+        Private Function LaunchLinuxBinary(info As InspectionResult, ByRef msg As String) As Integer
             Try
                 RunProcess("/bin/chmod", "+x " & QuoteArg(info.FilePath), Nothing, True)
             Catch
             End Try
 
-            Dim env = StageLibraryEnvironment(stageDir)
             If Not info.NeedsCrossArch Then
                 msg = "Running native Linux binary (" & info.Architecture & ")"
-                Return RunProcess(info.FilePath, "", env, False)
+                Return RunProcess(info.FilePath, "", Nothing, False)
             End If
 
             Dim qemu = ResolveQemuForArch(info.Architecture)
@@ -252,33 +251,7 @@ Namespace OlympiumLinux
             Dim sysroot = ResolveSysrootForArch(info.Architecture)
             Dim args = If(sysroot <> "", "-L " & QuoteArg(sysroot) & " " & QuoteArg(info.FilePath), QuoteArg(info.FilePath))
             msg = "Running cross-arch binary via " & Path.GetFileName(qemu) & " (" & info.Architecture & " on " & BinaryInspector.HostArch() & ")"
-            Return RunProcess(qemu, args, env, False)
-        End Function
-
-        Private Function StageLibraryEnvironment(stageDir As String) As System.Collections.Generic.Dictionary(Of String, String)
-            If String.IsNullOrEmpty(stageDir) OrElse Not Directory.Exists(stageDir) Then Return Nothing
-            Dim dirs As New System.Collections.Generic.List(Of String)
-            For Each root In {stageDir, Path.Combine(stageDir, "usr"), Path.Combine(stageDir, "usr", "local")}
-                If Not Directory.Exists(root) Then Continue For
-                For Each name In {"lib", "lib64"}
-                    Dim libDir = Path.Combine(root, name)
-                    If Not Directory.Exists(libDir) Then Continue For
-                    dirs.Add(libDir)
-                    Try
-                        For Each subDir In Directory.GetDirectories(libDir)
-                            dirs.Add(subDir)
-                        Next
-                    Catch
-                    End Try
-                Next
-            Next
-            If dirs.Count = 0 Then Return Nothing
-            Dim value = String.Join(":", dirs)
-            Dim existing = Environment.GetEnvironmentVariable("LD_LIBRARY_PATH")
-            If Not String.IsNullOrEmpty(existing) Then value &= ":" & existing
-            Return New System.Collections.Generic.Dictionary(Of String, String) From {
-                {"LD_LIBRARY_PATH", value}
-            }
+            Return RunProcess(qemu, args, Nothing, False)
         End Function
 
         Private Function InstallAndLaunchDeb(info As InspectionResult, ByRef msg As String) As Integer
@@ -300,7 +273,7 @@ Namespace OlympiumLinux
             If bin <> "" Then
                 WriteDesktopShortcut(appId, Path.GetFileNameWithoutExtension(info.FilePath), bin)
                 Dim subInfo = BinaryInspector.Inspect(bin)
-                Return LaunchLinuxBinary(subInfo, msg, stage)
+                Return LaunchLinuxBinary(subInfo, msg)
             End If
             msg = "Extracted .deb into " & stage
             Return 0
@@ -342,7 +315,7 @@ Namespace OlympiumLinux
             If bin <> "" Then
                 WriteDesktopShortcut(appId, Path.GetFileNameWithoutExtension(info.FilePath), bin)
                 Dim subInfo = BinaryInspector.Inspect(bin)
-                Return LaunchLinuxBinary(subInfo, msg, stage)
+                Return LaunchLinuxBinary(subInfo, msg)
             End If
             msg = "Extracted .rpm into " & stage
             Return 0
@@ -352,7 +325,6 @@ Namespace OlympiumLinux
             Dim darling = FindExecutable("darling")
             Dim darlingArm64 = If(File.Exists("/opt/olympium/darling-arm64/bin/darling"), "/opt/olympium/darling-arm64/bin/darling", "")
             Dim targetPath = info.FilePath
-            Dim launchInfo As InspectionResult = info
 
             If info.Format = PackageFormat.MacDmg OrElse info.Format = PackageFormat.MacPkg Then
                 Dim appId = SanitizeId(Path.GetFileNameWithoutExtension(info.FilePath))
@@ -363,16 +335,10 @@ Namespace OlympiumLinux
                     RunProcess(sevenZ, "x -y -o" & QuoteArg(stage) & " " & QuoteArg(info.FilePath), Nothing, True)
                 End If
                 Dim foundApp = FindMacAppInDir(stage)
-                If foundApp <> "" Then
-                    targetPath = foundApp
-                    Dim extracted = BinaryInspector.Inspect(foundApp)
-                    If extracted.Format = PackageFormat.MacAppBundle OrElse extracted.Format = PackageFormat.MacMachO Then
-                        launchInfo = extracted
-                    End If
-                End If
+                If foundApp <> "" Then targetPath = foundApp
             End If
 
-            Dim isArmOnly = launchInfo.Architecture.StartsWith("arm64", StringComparison.OrdinalIgnoreCase)
+            Dim isArmOnly = info.Architecture.StartsWith("arm64", StringComparison.OrdinalIgnoreCase)
             If isArmOnly Then
                 If darlingArm64 = "" Then
                     msg = "Apple Silicon (ARM64-only) Mac app detected. Stage /opt/olympium/darling-arm64 to execute on Linux."
@@ -391,7 +357,7 @@ Namespace OlympiumLinux
                 msg = "Darling GUI is not installed on this Linux host. Install Darling to run Intel/Universal2 Mac apps."
                 Return 1
             End If
-            msg = "Launching macOS app via Darling GUI (" & launchInfo.Architecture & ")"
+            msg = "Launching macOS app via Darling GUI (" & info.Architecture & ")"
             Return RunProcess(darling, "shell open " & QuoteArg(targetPath), Nothing, False)
         End Function
 
@@ -464,7 +430,7 @@ Namespace OlympiumLinux
                 "Name=Olympium" & vbLf &
                 "GenericName=Universal Cross-Platform App Runner" & vbLf &
                 "Comment=Double-click install and run Windows, macOS, Linux (x86/x64/ARM32/ARM64), Android, and OpenHarmony apps" & vbLf &
-                "Exec=" & QuoteArg(selfExe) & " %f" & vbLf &
+                "Exec=" & QuoteArg(selfExe) & " open %f" & vbLf &
                 "Icon=olympium" & vbLf &
                 "Terminal=false" & vbLf &
                 "Categories=System;Utility;" & vbLf &

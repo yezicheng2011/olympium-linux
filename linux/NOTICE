@@ -1,10 +1,10 @@
 Olympium for Linux (amd64 / arm64 / armhf)
 Copyright 2026 Olympium Contributors
 
-First-party VB.NET source code and packaging scripts in this repository are
-licensed under the Apache License, Version 2.0 (see LICENSE).
+First-party VB.NET source code and packaging scripts under linux/ are
+licensed under the Apache License, Version 2.0 (see linux/LICENSE).
 
 Host libraries dynamically loaded by Olympium (GTK 3 / GLib / .NET 8 Runtime)
 and external runtime tools invoked by Olympium (QEMU, Wine, Darling, dpkg,
 rpm2cpio, cpio, 7-Zip, ADB, scrcpy, OpenHarmony HDC) remain strictly under
-their own original licenses. See THIRD_PARTY_NOTICES.md.
+their own original licenses. See linux/THIRD_PARTY_NOTICES.md.

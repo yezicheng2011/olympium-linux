@@ -1,7 +1,7 @@
 # Third-Party Notices — Olympium for Linux
 
 ## First-Party Code
-All first-party VB.NET source code and packaging scripts in this repository are licensed under **Apache License, Version 2.0** ([LICENSE](LICENSE), [NOTICE](NOTICE)).
+All first-party VB.NET source code and packaging scripts in `linux/` are licensed under **Apache License, Version 2.0** ([LICENSE](LICENSE), [NOTICE](NOTICE)).
 
 ## Third-Party Components & External Runtimes
 
