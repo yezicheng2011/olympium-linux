@@ -1,0 +1,13 @@
+# Build outputs — packaging instructions are in BUILD*.txt; do not commit packages
+bin/
+obj/
+out/
+build/
+dist/
+*.user
+*.suo
+*.jks
+*.keystore
+.vs/
+.idea/
+*.pdb

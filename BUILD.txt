@@ -1,0 +1,65 @@
+====================================================================
+Olympium for Linux — 编译与打包命令指南 (BUILD.txt)
+====================================================================
+
+技术栈：VB.NET (.NET 8) + 原生 GTK3 桌面界面
+支持功能：
+  - 统一最新金色东方龙图标 (assets/olympium-1024.png)
+  - 双击原生安装并运行：.exe/.msi (自动 Wine)、.dmg/.pkg/.app (Darling GUI + ARM64 桥接)、
+    .deb/.rpm/ELF (原生及 x86/x86_64/arm32/arm64 跨架构 qemu-user-static)、
+    .apk (精简 ADB + scrcpy)、.hap (精简 OpenHarmony HDC/本地解析)
+  - 一键注册系统 MIME 关联 (olympium-linux register-mime)
+
+--------------------------------------------------------------------
+1. 安装编译与运行依赖 (Ubuntu / Debian)
+--------------------------------------------------------------------
+sudo apt-get update
+sudo apt-get install -y \
+  libgtk-3-0 qemu-user-static binfmt-support \
+  wine wine32 wine64 adb scrcpy p7zip-full rpm2cpio cpio dpkg-dev
+
+# 安装 .NET 8 SDK
+curl -sSL https://dot.net/v1/dotnet-install.sh | bash -s -- --channel 8.0
+export PATH="$HOME/.dotnet:$PATH"
+
+--------------------------------------------------------------------
+2. 本地编译与快速自测
+--------------------------------------------------------------------
+cd linux
+
+dotnet build OlympiumLinux.vbproj -c Release
+
+# 查看运行环境与跨架构支持状态
+dotnet run --project OlympiumLinux.vbproj -- status
+
+# 检测任意跨架构 / 跨平台软件格式
+dotnet run --project OlympiumLinux.vbproj -- probe /path/to/app.exe
+
+# 注册桌面双击文件关联
+dotnet run --project OlympiumLinux.vbproj -- register-mime
+
+--------------------------------------------------------------------
+3. 一键打包 .deb 安装包与多架构便携包 (.tar.gz)
+--------------------------------------------------------------------
+cd linux
+chmod +x package-linux.sh
+
+# 打包全部架构（amd64 + arm64 + armhf）
+./package-linux.sh all
+
+# 或仅打包单架构：
+# ./package-linux.sh amd64
+# ./package-linux.sh arm64
+# ./package-linux.sh armhf
+
+输出产物（位于 linux/dist/）：
+  dist/olympium-linux_1.0.0_amd64.deb
+  dist/olympium-linux_1.0.0_arm64.deb
+  dist/olympium-linux_1.0.0_armhf.deb
+  dist/olympium-linux-1.0.0-{amd64,arm64,armhf}.tar.gz
+
+--------------------------------------------------------------------
+4. 安装与卸载
+--------------------------------------------------------------------
+sudo dpkg -i dist/olympium-linux_1.0.0_amd64.deb
+olympium-linux register-mime
